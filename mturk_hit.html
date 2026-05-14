@@ -1,0 +1,50 @@
+<!--
+  MTURK HIT TEMPLATE
+  ==================
+  Paste the contents of this file into the MTurk "Design Layout" editor
+  when creating a HIT with type "Survey Link" or "External Question".
+
+  OR use the MTurk API / boto3 with ExternalQuestion pointing to your server.
+
+  Replace YOUR_SERVER_URL below with your deployed app URL, e.g.:
+    https://your-app.onrender.com
+    https://your-app.railway.app
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Memory Task</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    iframe { width: 100%; border: none; }
+  </style>
+</head>
+<body>
+
+<script>
+  // MTurk injects these variables into the page automatically.
+  // We read them and append them to the iframe src so your Flask
+  // app can identify the worker.
+  const params     = new URLSearchParams(window.location.search);
+  const workerId   = params.get("workerId")     || "";
+  const assignId   = params.get("assignmentId") || "";
+  const hitId      = params.get("hitId")        || "";
+  const submitTo   = params.get("turkSubmitTo") || "";
+
+  const serverUrl  = "https://YOUR_SERVER_URL";   // <-- CHANGE THIS
+
+  const iframeSrc  = `${serverUrl}/?workerId=${encodeURIComponent(workerId)}`
+                   + `&assignmentId=${encodeURIComponent(assignId)}`
+                   + `&hitId=${encodeURIComponent(hitId)}`
+                   + `&turkSubmitTo=${encodeURIComponent(submitTo)}`;
+
+  // Dynamically set iframe height to fill the window
+  document.write(
+    `<iframe src="${iframeSrc}" style="height:${window.innerHeight}px; width:100%;"></iframe>`
+  );
+</script>
+
+</body>
+</html>

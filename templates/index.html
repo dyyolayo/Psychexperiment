@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Memory Task</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 40px 50px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.1);
+      text-align: center;
+      max-width: 720px;
+      width: 95%;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 8px; color: #1a1a2e; }
+    h2 { font-size: 1.3rem; margin-bottom: 20px; color: #333; }
+    p.sub { color: #666; margin-bottom: 28px; font-size: .95rem; line-height: 1.5; }
+
+    .practice-badge {
+      display: inline-block;
+      background: #fff3cd; color: #856404;
+      border: 1px solid #ffc107; border-radius: 20px;
+      padding: 5px 16px; font-size: .85rem;
+      font-weight: bold; letter-spacing: .05em;
+      margin-bottom: 16px; text-transform: uppercase;
+    }
+    .round-indicator {
+      display: inline-block;
+      background: #e8f4fd; color: #1565c0;
+      border: 1px solid #90caf9; border-radius: 20px;
+      padding: 5px 16px; font-size: .85rem;
+      font-weight: bold; margin-bottom: 16px;
+    }
+    .register-form input[type="text"] {
+      width: 100%; padding: 12px 16px; font-size: 1rem;
+      border: 2px solid #ccc; border-radius: 8px;
+      margin-bottom: 20px; outline: none;
+      transition: border-color .2s;
+    }
+    .register-form input[type="text"]:focus { border-color: #4a90e2; }
+    .btn {
+      padding: 12px 32px; font-size: 1rem;
+      border: none; border-radius: 8px;
+      cursor: pointer; background: #4a90e2;
+      color: #fff; transition: background .2s;
+    }
+    .btn:hover  { background: #357abd; }
+    .btn:disabled { background: #aaa; cursor: not-allowed; }
+    .btn.green  { background: #43a047; }
+    .btn.green:hover { background: #2e7d32; }
+
+    #flash-stage { display: none; }
+    #flash-image {
+      width: 500px; max-width: 100%; height: 340px;
+      object-fit: contain; border-radius: 8px; background: #eee;
+    }
+    #progress-bar-wrap {
+      width: 500px; max-width: 100%; height: 6px;
+      background: #e0e0e0; border-radius: 3px;
+      margin: 14px auto 0; overflow: hidden;
+    }
+    #progress-bar { height: 100%; width: 0%; background: #4a90e2; transition: width .1s linear; }
+    #flash-counter { margin-top: 10px; color: #888; font-size: .9rem; }
+
+    #selection-stage { display: none; }
+    #timer-bar-wrap {
+      width: 100%; height: 8px; background: #e0e0e0;
+      border-radius: 4px; margin-bottom: 20px; overflow: hidden;
+    }
+    #timer-bar { height: 100%; width: 100%; background: #4caf50; transition: width 1s linear, background 1s linear; }
+
+    .choices { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+    .choice-card {
+      cursor: pointer; border: 3px solid transparent;
+      border-radius: 10px; padding: 8px;
+      transition: border-color .15s, transform .1s;
+    }
+    .choice-card:hover  { transform: scale(1.03); }
+    .choice-card.selected { border-color: #4a90e2; background: #eaf3ff; }
+    .choice-card img { width: 190px; height: 140px; object-fit: cover; border-radius: 6px; display: block; }
+    .choice-card input[type="radio"] { display: none; }
+
+    .banner { border-radius: 8px; padding: 14px 20px; font-size: 1rem; margin-top: 14px; display: none; }
+    .banner.warning  { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+    .banner.correct  { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .banner.incorrect{ background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .banner.timeout  { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+
+    .done-icon { font-size: 3.5rem; margin-bottom: 16px; }
+    .info-box {
+      background: #f8f9fa; border: 1px solid #dee2e6;
+      border-radius: 8px; padding: 16px; margin: 20px 0;
+      font-size: .9rem; color: #555; text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     PAGE: MTURK PREVIEW (worker hasn't accepted HIT yet)
+     ============================================================ -->
+{% if page == "preview" %}
+<div class="card">
+  <h1>Memory Task</h1>
+  <div class="info-box">
+    <strong>About this task:</strong><br><br>
+    You will watch a series of images flash on screen, then choose which image you saw from three options.<br><br>
+    • 1 short practice round (does not count)<br>
+    • 2 test rounds<br>
+    • Each round takes about 1–2 minutes<br><br>
+    <strong>Please accept the HIT to begin.</strong>
+  </div>
+</div>
+{% endif %}
+
+
+<!-- ============================================================
+     PAGE: REGISTER (manual / non-MTurk mode)
+     ============================================================ -->
+{% if page == "register" %}
+<div class="card">
+  <h1>Memory Task</h1>
+  <p class="sub">
+    You will complete <strong>1 practice round</strong> followed by
+    <strong>2 test rounds</strong>.<br>
+    In each round, images will flash on screen — try to remember them,
+    then pick the one you saw from the three options shown.
+  </p>
+  <form class="register-form" method="POST" action="/start">
+    <input type="text" name="participant_id"
+           placeholder="Participant ID (e.g. P001)"
+           required autofocus>
+    <button type="submit" class="btn">Begin</button>
+  </form>
+</div>
+{% endif %}
+
+
+<!-- ============================================================
+     PAGE: TRIAL
+     ============================================================ -->
+{% if page == "trial" %}
+<div class="card">
+
+  <div id="round-header">
+    {% if is_practice %}
+      <div class="practice-badge">🧪 Practice Round</div>
+      <p class="sub" style="margin-bottom:10px;">
+        This is a <strong>practice round</strong> — it won't count toward your results.
+        Get comfortable with the task before the real trials begin.
+      </p>
+    {% else %}
+      <div class="round-indicator">Round {{ real_round }} of {{ total_real }}</div>
+    {% endif %}
+  </div>
+
+  <div id="flash-stage">
+    <h1>Watch Carefully</h1>
+    <p class="sub">Images will flash on screen one at a time.</p>
+    <img id="flash-image" src="" alt="">
+    <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+    <p id="flash-counter"></p>
+  </div>
+
+  <div id="selection-stage">
+    {% if is_practice %}
+      <div class="practice-badge" style="margin-bottom:12px;">🧪 Practice Round</div>
+    {% endif %}
+    <h2>Which image did you see?</h2>
+    <p class="sub">
+      Select the image from the sequence and click Submit.
+      You have <span id="time-label">{{ (response_timeout / 1000)|int }}</span> seconds.
+    </p>
+
+    <div id="timer-bar-wrap"><div id="timer-bar"></div></div>
+    <div class="banner warning" id="timeout-msg">⏰ Time is up! Your response has been recorded.</div>
+
+    <div class="choices" id="choices-container">
+      {% for image in option_paths %}
+      <label class="choice-card" id="card-{{ loop.index }}">
+        <img src="/static/{{ image }}" alt="Option {{ loop.index }}">
+        <input type="radio" name="selected_image"
+               value="/static/{{ image }}"
+               onchange="selectCard(this, 'card-{{ loop.index }}')">
+      </label>
+      {% endfor %}
+    </div>
+
+    <button class="btn" id="submit-btn" onclick="submitData()" disabled>Submit Answer</button>
+    <div class="banner" id="result-banner"></div>
+    <div style="margin-top:20px;">
+      <button class="btn green" id="next-btn" style="display:none;" onclick="nextTrial()">
+        {% if is_practice %}Start Test →
+        {% elif real_round == total_real %}Finish
+        {% else %}Next Round →{% endif %}
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const slideshowImages  = {{ flash_paths | tojson }};
+const optionPaths      = {{ option_paths | tojson }};
+const targetPath       = "/static/{{ target_path }}";
+const focusCategory    = {{ focus_category | tojson }};
+const participantId    = {{ participant_id | tojson }};
+const assignmentId     = {{ assignment_id | tojson }};
+const hitId            = {{ hit_id | tojson }};
+const roundNumber      = {{ round_number }};
+const trialType        = {{ trial_type | tojson }};
+const isPractice       = {{ 'true' if is_practice else 'false' }};
+const FLASH_DURATION   = {{ flash_duration }};
+const BLANK_DURATION   = {{ blank_duration }};
+const RESPONSE_TIMEOUT = {{ response_timeout }};
+
+let currentIndex     = 0;
+let selectionStart   = null;
+let timerInterval    = null;
+let alreadySubmitted = false;
+let timedOut         = false;
+
+const roundHeader  = document.getElementById("round-header");
+const flashStage   = document.getElementById("flash-stage");
+const selStage     = document.getElementById("selection-stage");
+const flashImg     = document.getElementById("flash-image");
+const progBar      = document.getElementById("progress-bar");
+const flashCounter = document.getElementById("flash-counter");
+const timerBar     = document.getElementById("timer-bar");
+const timeLabel    = document.getElementById("time-label");
+const submitBtn    = document.getElementById("submit-btn");
+const resultBanner = document.getElementById("result-banner");
+const timeoutMsg   = document.getElementById("timeout-msg");
+const nextBtn      = document.getElementById("next-btn");
+
+setTimeout(() => {
+  roundHeader.style.display = "none";
+  flashStage.style.display  = "block";
+  showImages();
+}, 2200);
+
+function updateProgress() {
+  progBar.style.width = ((currentIndex / slideshowImages.length) * 100) + "%";
+  flashCounter.textContent = `Image ${currentIndex} of ${slideshowImages.length}`;
+}
+
+function showImages() {
+  updateProgress();
+  if (currentIndex >= slideshowImages.length) {
+    flashImg.src = "";
+    flashImg.style.display = "none";
+    progBar.style.width = "100%";
+    setTimeout(startSelection, 400);
+    return;
+  }
+  flashImg.style.display = "block";
+  flashImg.src = "/static/" + slideshowImages[currentIndex];
+  currentIndex++;
+  setTimeout(() => { flashImg.src = ""; setTimeout(showImages, BLANK_DURATION); }, FLASH_DURATION);
+}
+
+function startSelection() {
+  flashStage.style.display = "none";
+  selStage.style.display   = "block";
+  selectionStart = performance.now();
+  startCountdown();
+}
+
+function startCountdown() {
+  const totalSeconds = RESPONSE_TIMEOUT / 1000;
+  let remaining = totalSeconds;
+  timerBar.style.transition = "none";
+  timerBar.style.width      = "100%";
+  timerBar.style.background = "#4caf50";
+  timerBar.getBoundingClientRect();
+  timerBar.style.transition = `width ${totalSeconds}s linear, background ${totalSeconds}s linear`;
+  timerBar.style.width      = "0%";
+  timerBar.style.background = "#f44336";
+  timerInterval = setInterval(() => {
+    remaining -= 1;
+    timeLabel.textContent = Math.max(0, remaining);
+    if (remaining <= 0) { clearInterval(timerInterval); if (!alreadySubmitted) handleTimeout(); }
+  }, 1000);
+}
+
+function handleTimeout() {
+  timedOut = true;
+  disableChoices();
+  timeoutMsg.style.display = "block";
+  submitBtn.disabled = true;
+  autoSubmit(null);
+}
+
+function selectCard(radio, cardId) {
+  document.querySelectorAll(".choice-card").forEach(c => c.classList.remove("selected"));
+  document.getElementById(cardId).classList.add("selected");
+  submitBtn.disabled = false;
+}
+
+function disableChoices() {
+  document.querySelectorAll('.choice-card').forEach(c => {
+    c.style.pointerEvents = "none"; c.style.cursor = "default";
+  });
+}
+
+function submitData() {
+  if (alreadySubmitted) return;
+  const selected = document.querySelector('input[name="selected_image"]:checked');
+  if (!selected) { alert("Please select an image."); return; }
+  autoSubmit(performance.now() - selectionStart, selected.value);
+}
+
+function autoSubmit(rt, selectedValue) {
+  if (alreadySubmitted) return;
+  alreadySubmitted = true;
+  clearInterval(timerInterval);
+  disableChoices();
+  submitBtn.disabled = true;
+
+  fetch("/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      participant_id:   participantId,
+      assignment_id:    assignmentId,
+      hit_id:           hitId,
+      round_number:     roundNumber,
+      trial_type:       trialType,
+      focus_category:   focusCategory,
+      flashed_images:   slideshowImages.map(p => "/static/" + p),
+      final_options:    optionPaths.map(p => "/static/" + p),
+      target_image:     targetPath,
+      selected_image:   selectedValue || null,
+      response_time_ms: rt,
+      metadata:         {}
+    })
+  })
+  .then(r => r.json())
+  .then(data => showResult(data.is_correct, rt))
+  .catch(()  => showResult(null, rt));
+}
+
+function showResult(isCorrect, rt) {
+  if (timedOut) {
+    resultBanner.className   = "banner timeout";
+    resultBanner.textContent = "⏰ Time expired — response recorded as timeout.";
+  } else if (isCorrect === true) {
+    resultBanner.className   = "banner correct";
+    resultBanner.textContent = `✅ Correct! Response time: ${Math.round(rt)} ms`;
+  } else {
+    resultBanner.className   = "banner incorrect";
+    resultBanner.textContent = `❌ Incorrect. Response time: ${Math.round(rt)} ms`;
+  }
+  resultBanner.style.display = "block";
+  nextBtn.style.display      = "inline-block";
+}
+
+function nextTrial() { window.location.href = "/trial"; }
+</script>
+{% endif %}
+
+
+<!-- ============================================================
+     PAGE: DONE
+     ============================================================ -->
+{% if page == "done" %}
+<div class="card">
+  <div class="done-icon">🎉</div>
+  <h1>All Done!</h1>
+  <p class="sub" style="margin-top:12px;">
+    Thank you for completing the experiment.<br>
+    {% if turk_submit and assignment_id and assignment_id != "manual" %}
+      Click the button below to submit your work to MTurk and receive your payment.
+    {% else %}
+      You may now close this window.
+    {% endif %}
+  </p>
+
+  {% if turk_submit and assignment_id and assignment_id != "manual" %}
+  <!--
+    MTurk requires a form POST to turkSubmitTo/mturk/externalSubmit
+    with at least assignmentId. You can add extra fields as hidden inputs
+    — they appear in your MTurk results CSV under "Answer.*" columns.
+  -->
+  <form id="mturk-form"
+        method="POST"
+        action="{{ turk_submit }}/mturk/externalSubmit">
+    <input type="hidden" name="assignmentId" value="{{ assignment_id }}">
+    <!-- Optional: surface a completion code or summary for your records -->
+    <input type="hidden" name="experiment_complete" value="true">
+    <button type="submit" class="btn green" style="margin-top:20px; font-size:1.1rem;">
+      Submit to MTurk ✓
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
+</body>
+</html>
